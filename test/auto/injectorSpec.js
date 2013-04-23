@@ -123,6 +123,12 @@ describe('injector', function() {
         injector.invoke(['a', 123], {});
       }).toThrow("Argument 'fn' is not a function, got number");
     });
+
+    it('should provide locals as service', function() {
+      fn.$inject = ['a', 'b', 'c', '$locals'];
+      injector.invoke(fn, {name: "this"}, {c:3});
+      expect(args).toEqual([{name: 'this'}, 1, 2, 3, {c: 3}]);
+    });
   });
 
 
@@ -368,6 +374,19 @@ describe('injector', function() {
 
           expect(injector.get('foo') instanceof Type).toBe(true);
           expect(injector.get('bar') instanceof Type).toBe(true);
+        });
+
+
+        it('should receive locals', function() {
+          var Type = function(value) {
+            this.value = value;
+          };
+
+          var instance = createInjector([function($provide) {
+            $provide.service('foo', Type);
+          }]).get('foo', {value: 123});
+
+          expect(instance.value).toBe(123);
         });
       });
 

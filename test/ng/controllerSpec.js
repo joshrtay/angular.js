@@ -1,10 +1,11 @@
 'use strict';
 
 describe('$controller', function() {
-  var $controllerProvider, $controller;
+  var $controllerProvider, $controller, $provide;
 
-  beforeEach(module(function(_$controllerProvider_) {
+  beforeEach(module(function(_$controllerProvider_, _$provide_) {
     $controllerProvider = _$controllerProvider_;
+    $provide = _$provide_;
   }));
 
 
@@ -57,6 +58,7 @@ describe('$controller', function() {
       expect(scope.foo).toBe('bar');
       expect(ctrl instanceof FooCtrl).toBe(true);
     });
+
   });
 
 
@@ -98,5 +100,15 @@ describe('$controller', function() {
     var foo = $controller('FooCtrl as foo', {$scope: scope});
     expect(scope.foo).toBe(foo);
     expect(scope.foo.mark).toBe('foo');
+  });
+
+  it('should give services current scope', function() {
+    $provide.service('bar', ['$scope', function($scope) {$scope.bar = 123; }])
+
+    var Foo = function($scope, bar) {};
+
+    var scope = {};
+    var ctrl = $controller(Foo, {$scope: scope});
+    expect(scope.bar).toBe(123);
   });
 });

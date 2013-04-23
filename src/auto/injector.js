@@ -416,9 +416,9 @@ function createInjector(modulesToLoad) {
           })),
       instanceCache = {},
       instanceInjector = (instanceCache.$injector =
-          createInternalInjector(instanceCache, function(servicename) {
+          createInternalInjector(instanceCache, function(servicename, locals) {
             var provider = providerInjector.get(servicename + providerSuffix);
-            return instanceInjector.invoke(provider.$get, provider);
+            return instanceInjector.invoke(provider.$get, provider, locals);
           }));
 
 
@@ -453,8 +453,8 @@ function createInjector(modulesToLoad) {
   function factory(name, factoryFn) { return provider(name, { $get: factoryFn }); }
 
   function service(name, constructor) {
-    return factory(name, ['$injector', function($injector) {
-      return $injector.instantiate(constructor);
+    return factory(name, ['$injector', '$locals', function($injector, $locals) {
+      return $injector.instantiate(constructor, $locals);
     }]);
   }
 
@@ -525,7 +525,7 @@ function createInjector(modulesToLoad) {
 
   function createInternalInjector(cache, factory) {
 
-    function getService(serviceName) {
+    function getService(serviceName, locals) {
       if (typeof serviceName !== 'string') {
         throw Error('Service name expected');
       }
@@ -538,7 +538,7 @@ function createInjector(modulesToLoad) {
         try {
           path.unshift(serviceName);
           cache[serviceName] = INSTANTIATING;
-          return cache[serviceName] = factory(serviceName);
+          return cache[serviceName] = factory(serviceName, locals);
         } finally {
           path.shift();
         }
@@ -549,15 +549,17 @@ function createInjector(modulesToLoad) {
       var args = [],
           $inject = annotate(fn),
           length, i,
-          key;
+          key, val;
 
       for(i = 0, length = $inject.length; i < length; i++) {
         key = $inject[i];
-        args.push(
-          locals && locals.hasOwnProperty(key)
-          ? locals[key]
-          : getService(key)
-        );
+        if (locals && locals.hasOwnProperty(key))
+          val = locals[key];
+        else if (key === '$locals')
+          val = locals;
+        else
+          val = getService(key, locals);
+        args.push(val);
       }
       if (!fn.$inject) {
         // this means that we must be an array.
